@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -21,7 +20,6 @@ func main() {
 	var boost_address string
 	var boost_api_key string
 	var base_directory string
-	var daemon bool
 
 	app := &cli.App{
 		Name:  "import",
@@ -45,24 +43,11 @@ func main() {
 				Required:    true,
 				Destination: &base_directory,
 			},
-			&cli.BoolFlag{
-				Name:        "daemon",
-				Usage:       "daemon",
-				Destination: &daemon,
-			},
 		},
 
 		Action: func(cctx *cli.Context) error {
-			if !daemon {
-				importer(boost_address, boost_api_key, base_directory)
-				return nil
-			} else {
-				for {
-					log.Debugln("running dataset import check...")
-					importer(boost_address, boost_api_key, base_directory)
-					time.Sleep(time.Minute * 5)
-				}
-			}
+			importer(boost_address, boost_api_key, base_directory)
+			return nil
 		},
 	}
 
@@ -113,6 +98,7 @@ func getDealsFromBoost(boost_address string) []Deal {
 				PieceCid
 				IsOffline
 				ClientAddress
+				Checkpoint
 			}
 		}
 	}
@@ -140,7 +126,7 @@ func filterDeals(d []Deal) []Deal {
 func carExists(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
-		log.Errorf("opening file %s: %w", path, err)
+		log.Errorf("error finding car file %s: %w", path, err)
 		return false
 	}
 	return true
