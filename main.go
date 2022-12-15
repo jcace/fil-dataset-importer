@@ -47,11 +47,13 @@ func main() {
 			&cli.StringFlag{
 				Name:        "gql",
 				Usage:       "8080",
+				DefaultText: "8080",
 				Destination: &gql_port,
 			},
 			&cli.StringFlag{
 				Name:        "port",
 				Usage:       "1288",
+				DefaultText: "1288",
 				Destination: &boost_port,
 			},
 			&cli.BoolFlag{
