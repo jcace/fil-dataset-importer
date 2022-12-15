@@ -19,7 +19,9 @@ func main() {
 	var boost_address string
 	var boost_api_key string
 	var base_directory string
-	var debug bool
+	var debug bool = false
+	var gql_port = "8080"
+	var boost_port = "1288"
 
 	app := &cli.App{
 		Name:  "import",
@@ -32,7 +34,7 @@ func main() {
 				Destination: &boost_address,
 			},
 			&cli.StringFlag{
-				Name:        "api",
+				Name:        "key",
 				Usage:       "eyJ....XXX",
 				Required:    true,
 				Destination: &boost_api_key,
@@ -42,6 +44,16 @@ func main() {
 				Usage:       "/home/filecoin/path/to/mount",
 				Required:    true,
 				Destination: &base_directory,
+			},
+			&cli.StringFlag{
+				Name:        "gql",
+				Usage:       "8080",
+				Destination: &gql_port,
+			},
+			&cli.StringFlag{
+				Name:        "port",
+				Usage:       "1288",
+				Destination: &boost_port,
 			},
 			&cli.BoolFlag{
 				Name:        "debug",
@@ -57,7 +69,7 @@ func main() {
 				log.SetLevel(log.DebugLevel)
 			}
 
-			importer(boost_address, boost_api_key, base_directory)
+			importer(boost_address, boost_api_key, gql_port, boost_port, base_directory)
 			return nil
 		},
 	}
@@ -67,13 +79,13 @@ func main() {
 	}
 }
 
-func importer(boost_address string, boost_api_key string, base_directory string) {
-	boost, err := NewBoostConnection(boost_address+":1288", boost_api_key)
+func importer(boost_address string, boost_api_key string, gql_port string, boost_port string, base_directory string) {
+	boost, err := NewBoostConnection(boost_address+":"+boost_port, boost_api_key)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	d := getDealsFromBoost(boost_address)
+	d := getDealsFromBoost(boost_address, gql_port)
 	od := filterDeals(d)
 
 	log.Debugf("%d deals to check\n", len(od))
@@ -100,8 +112,8 @@ func importer(boost_address string, boost_api_key string, base_directory string)
 	}
 }
 
-func getDealsFromBoost(boost_address string) []Deal {
-	graphqlClient := graphql.NewClient("http://" + boost_address + ":8080" + "/graphql/query")
+func getDealsFromBoost(boost_address string, gql_port string) []Deal {
+	graphqlClient := graphql.NewClient("http://" + boost_address + ":" + gql_port + "/graphql/query")
 	graphqlRequest := graphql.NewRequest(`
 	{
 		deals(query: "", limit: 9999999) {
