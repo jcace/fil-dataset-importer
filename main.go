@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/google/uuid"
@@ -68,10 +67,7 @@ func importer(boost_address string, boost_api_key string, base_directory string)
 	log.Debugf("%d deals to check\n", len(od))
 
 	for _, deal := range od {
-		filename := generateCarFileName(base_directory, deal.PieceCid, DATASET_MAP[deal.ClientAddress])
-
-		fmt.Println(filename)
-		fmt.Println(base_directory, deal.PieceCid, DATASET_MAP[deal.ClientAddress])
+		filename := generateCarFileName(base_directory, deal.PieceCid, deal.ClientAddress)
 
 		if filename == "" {
 			continue
@@ -80,6 +76,7 @@ func importer(boost_address string, boost_api_key string, base_directory string)
 		if !carExists(filename) {
 			continue
 		}
+
 		id, err := uuid.Parse(deal.ID)
 		if err != nil {
 			log.Errorf("could not parse uuid " + deal.ID)
@@ -89,9 +86,6 @@ func importer(boost_address string, boost_api_key string, base_directory string)
 		log.Debugf("importing uuid %v at %v\n", id, filename)
 		boost.importCar(context.Background(), filename, id)
 	}
-
-	fmt.Printf("%+v", od)
-
 }
 
 func getDealsFromBoost(boost_address string) []Deal {
@@ -140,11 +134,10 @@ func carExists(path string) bool {
 }
 
 // Mapping from client address -> dataset slug -> find in the folder
-func generateCarFileName(base_directory string, pieceCid string, dataset string) string {
-	datasetSlug := DATASET_MAP[dataset]
-	fmt.Println("slug:" + datasetSlug)
-	fmt.Println(datasetSlug == "")
+func generateCarFileName(base_directory string, pieceCid string, sourceAddr string) string {
+	datasetSlug := DATASET_MAP[sourceAddr]
 	if datasetSlug == "" {
+		log.Errorf("unrecognized dataset from addr %s\n", sourceAddr)
 		return ""
 	}
 
