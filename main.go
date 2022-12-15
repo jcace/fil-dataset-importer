@@ -70,6 +70,13 @@ func importer(boost_address string, boost_api_key string, base_directory string)
 	for _, deal := range od {
 		filename := generateCarFileName(base_directory, deal.PieceCid, DATASET_MAP[deal.ClientAddress])
 
+		fmt.Println(filename)
+		fmt.Println(base_directory, deal.PieceCid, DATASET_MAP[deal.ClientAddress])
+
+		if filename == "" {
+			continue
+		}
+
 		if !carExists(filename) {
 			continue
 		}
@@ -126,7 +133,7 @@ func filterDeals(d []Deal) []Deal {
 func carExists(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
-		log.Errorf("error finding car file %s: %w", path, err)
+		log.Errorf("error finding car file %s: %s", path, err)
 		return false
 	}
 	return true
