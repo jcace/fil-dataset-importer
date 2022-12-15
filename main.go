@@ -104,7 +104,7 @@ func getDealsFromBoost(boost_address string) []Deal {
 	graphqlClient := graphql.NewClient("http://" + boost_address + ":8080" + "/graphql/query")
 	graphqlRequest := graphql.NewRequest(`
 	{
-		deals(query: "") {
+		deals(query: "", limit: 9999999) {
 			deals {
 				ID
 				Message
