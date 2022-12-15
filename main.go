@@ -142,6 +142,8 @@ func carExists(path string) bool {
 // Mapping from client address -> dataset slug -> find in the folder
 func generateCarFileName(base_directory string, pieceCid string, dataset string) string {
 	datasetSlug := DATASET_MAP[dataset]
+	fmt.Println("slug:" + datasetSlug)
+	fmt.Println(datasetSlug == "")
 	if datasetSlug == "" {
 		return ""
 	}
