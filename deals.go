@@ -25,11 +25,12 @@ type DealsClass struct {
 }
 
 type Deal struct {
-	ID            string `json:"ID"`
-	CreatedAt     string `json:"CreatedAt"`
-	Message       string `json:"Message"`
-	PieceCid      string `json:"PieceCid"`
-	IsOffline     bool   `json:"IsOffline"`
-	ClientAddress string `json:"ClientAddress"`
-	Checkpoint    string `json:"Checkpoint"`
+	ID              string `json:"ID"`
+	CreatedAt       string `json:"CreatedAt"`
+	Message         string `json:"Message"`
+	PieceCid        string `json:"PieceCid"`
+	IsOffline       bool   `json:"IsOffline"`
+	ClientAddress   string `json:"ClientAddress"`
+	Checkpoint      string `json:"Checkpoint"`
+	InboundFilePath string `json:"InboundFilePath"`
 }

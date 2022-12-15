@@ -112,6 +112,7 @@ func getDealsFromBoost(boost_address string) []Deal {
 				IsOffline
 				ClientAddress
 				Checkpoint
+				InboundFilePath
 			}
 		}
 	}
@@ -128,7 +129,11 @@ func filterDeals(d []Deal) []Deal {
 	var result []Deal
 
 	for _, deal := range d {
-		if deal.IsOffline && deal.Checkpoint == "Accepted" {
+		// Only check:
+		// - Offline deals
+		// - Accepted deals (awaiting import)
+		// - Deals where the inbound path has not been set (has not been imported yet)
+		if deal.IsOffline && deal.Checkpoint == "Accepted" && deal.InboundFilePath == "" {
 			result = append(result, deal)
 		}
 	}
