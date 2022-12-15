@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -20,6 +21,7 @@ func main() {
 	var boost_address string
 	var boost_api_key string
 	var base_directory string
+	var daemon bool
 
 	app := &cli.App{
 		Name:  "import",
@@ -43,11 +45,24 @@ func main() {
 				Required:    true,
 				Destination: &base_directory,
 			},
+			&cli.BoolFlag{
+				Name:        "daemon",
+				Usage:       "daemon",
+				Destination: &daemon,
+			},
 		},
 
 		Action: func(cctx *cli.Context) error {
-			importer(boost_address, boost_api_key, base_directory)
-			return nil
+			if !daemon {
+				importer(boost_address, boost_api_key, base_directory)
+				return nil
+			} else {
+				for {
+					importer(boost_address, boost_api_key, base_directory)
+					time.Sleep(time.Second * 20)
+				}
+				return nil
+			}
 		},
 	}
 
