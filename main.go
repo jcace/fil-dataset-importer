@@ -19,6 +19,7 @@ func main() {
 	var boost_address string
 	var boost_api_key string
 	var base_directory string
+	var debug bool
 
 	app := &cli.App{
 		Name:  "import",
@@ -42,10 +43,20 @@ func main() {
 				Required:    true,
 				Destination: &base_directory,
 			},
+			&cli.BoolFlag{
+				Name:        "debug",
+				Usage:       "set to enable debug logging output",
+				Destination: &debug,
+			},
 		},
 
 		Action: func(cctx *cli.Context) error {
 			log.Info("beginning dataset import...")
+
+			if debug {
+				log.SetLevel(log.DebugLevel)
+			}
+
 			importer(boost_address, boost_api_key, base_directory)
 			return nil
 		},
