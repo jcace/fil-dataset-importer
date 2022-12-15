@@ -31,4 +31,5 @@ type Deal struct {
 	PieceCid      string `json:"PieceCid"`
 	IsOffline     bool   `json:"IsOffline"`
 	ClientAddress string `json:"ClientAddress"`
+	Checkpoint    string `json:"Checkpoint"`
 }

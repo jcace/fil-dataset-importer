@@ -63,12 +63,12 @@ func importer(boost_address string, boost_api_key string, base_directory string)
 	}
 
 	d := getDealsFromBoost(boost_address)
-	od := filterNonOfflineDeals(d)
+	od := filterDeals(d)
 
 	for _, deal := range od {
 		filename := generateCarFileName(base_directory, deal.PieceCid, DATASET_MAP[deal.ClientAddress])
 
-		if carExists(filename) == false {
+		if !carExists(filename) {
 			continue
 		}
 		id, err := uuid.Parse(deal.ID)
@@ -107,11 +107,11 @@ func getDealsFromBoost(boost_address string) []Deal {
 	return graphqlResponse.Deals.Deals
 }
 
-func filterNonOfflineDeals(d []Deal) []Deal {
+func filterDeals(d []Deal) []Deal {
 	var result []Deal
 
 	for _, deal := range d {
-		if deal.IsOffline {
+		if deal.IsOffline && deal.Checkpoint == "Accepted" {
 			result = append(result, deal)
 		}
 	}
