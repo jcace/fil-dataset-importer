@@ -58,10 +58,10 @@ func main() {
 				return nil
 			} else {
 				for {
+					log.Debugln("running dataset import check...")
 					importer(boost_address, boost_api_key, base_directory)
-					time.Sleep(time.Second * 20)
+					time.Sleep(time.Minute * 5)
 				}
-				return nil
 			}
 		},
 	}
@@ -80,6 +80,8 @@ func importer(boost_address string, boost_api_key string, base_directory string)
 	d := getDealsFromBoost(boost_address)
 	od := filterDeals(d)
 
+	log.Debugf("%d deals to check\n", len(od))
+
 	for _, deal := range od {
 		filename := generateCarFileName(base_directory, deal.PieceCid, DATASET_MAP[deal.ClientAddress])
 
@@ -92,6 +94,7 @@ func importer(boost_address string, boost_api_key string, base_directory string)
 			continue
 		}
 
+		log.Debugf("importing uuid %v at %v\n", id, filename)
 		boost.importCar(context.Background(), filename, id)
 	}
 
