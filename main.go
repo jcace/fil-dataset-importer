@@ -24,8 +24,7 @@ func main() {
 	var boost_port = "1288"
 
 	app := &cli.App{
-		Name:  "import",
-		Usage: "import <cid> <sp id>",
+		Name: "Filecoin Offline Dataset Importer",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "boost",
