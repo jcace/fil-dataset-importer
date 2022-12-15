@@ -45,6 +45,7 @@ func main() {
 		},
 
 		Action: func(cctx *cli.Context) error {
+			log.Info("beginning dataset import...")
 			importer(boost_address, boost_api_key, base_directory)
 			return nil
 		},
