@@ -111,7 +111,7 @@ func importer(boost_address string, boost_port string, gql_port string, boost_ap
 
 	toImport := d.AwaitingImport()
 
-	log.Debugf("%d deals awaiting import\n", len(toImport))
+	log.Debugf("%d deals awaiting import and %d deals in progress\n", len(toImport), len(inProgress))
 
 	if len(toImport) == 0 {
 		log.Debugf("nothing to do, no deals awaiting import")
