@@ -8,8 +8,6 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-
-	"github.com/machinebox/graphql"
 )
 
 var DATASET_MAP = map[string]string{
@@ -86,7 +84,7 @@ func main() {
 
 			for {
 				log.Debugf("running import")
-				importer(boost_address, boost_api_key, gql_port, boost_port, base_directory, max_concurrent)
+				importer(boost_address, boost_port, gql_port, boost_api_key, base_directory, max_concurrent)
 				time.Sleep(time.Second * time.Duration(interval))
 			}
 		},
@@ -97,21 +95,21 @@ func main() {
 	}
 }
 
-func importer(boost_address string, boost_api_key string, gql_port string, boost_port string, base_directory string, max_concurrent int) {
-	boost, err := NewBoostConnection(boost_address+":"+boost_port, boost_api_key)
+func importer(boost_address string, boost_port string, gql_port string, boost_api_key string, base_directory string, max_concurrent int) {
+	boost, err := NewBoostConnection(boost_address, boost_port, gql_port, boost_api_key)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	d := getDealsFromBoost(boost_address, gql_port)
-	inProgress := filterDealsBeingSealed(d)
+	d := boost.GetDeals()
+	inProgress := d.InProgress()
 
 	if max_concurrent != 0 && len(inProgress) >= max_concurrent {
 		log.Debugf("skipping import as there are %d deals in progress (max_concurrent is %d)", len(inProgress), max_concurrent)
 		return
 	}
 
-	toImport := filterDealsToBeImported(d)
+	toImport := d.AwaitingImport()
 
 	log.Debugf("%d deals awaiting import\n", len(toImport))
 
@@ -142,65 +140,9 @@ func importer(boost_address string, boost_api_key string, gql_port string, boost
 		}
 
 		log.Debugf("importing uuid %v from %v\n", id, filename)
-		boost.importCar(context.Background(), filename, id)
+		boost.ImportCar(context.Background(), filename, id)
 		break
 	}
-}
-
-func getDealsFromBoost(boost_address string, gql_port string) []Deal {
-	graphqlClient := graphql.NewClient("http://" + boost_address + ":" + gql_port + "/graphql/query")
-	graphqlRequest := graphql.NewRequest(`
-	{
-		deals(query: "", limit: 9999999) {
-			deals {
-				ID
-				Message
-				PieceCid
-				IsOffline
-				ClientAddress
-				Checkpoint
-				InboundFilePath
-			}
-		}
-	}
-	`)
-	var graphqlResponse Data
-	if err := graphqlClient.Run(context.Background(), graphqlRequest, &graphqlResponse); err != nil {
-		panic(err)
-	}
-
-	return graphqlResponse.Deals.Deals
-}
-
-func filterDealsToBeImported(d []Deal) []Deal {
-	var toImport []Deal
-
-	for _, deal := range d {
-		// Only check:
-		// - Offline deals
-		// - Accepted deals (awaiting import)
-		// - Deals where the inbound path has not been set (has not been imported yet)
-		if deal.IsOffline && deal.Checkpoint == "Accepted" && deal.InboundFilePath == "" {
-			toImport = append(toImport, deal)
-		}
-	}
-
-	return toImport
-}
-
-func filterDealsBeingSealed(d []Deal) []Deal {
-	var beingSealed []Deal
-
-	for _, deal := range d {
-		// Only check:
-		// - Deals in PC1 phase
-		// - Deals that are "Adding to Sector" (in AddPiece)
-		if deal.Message == "Sealer: PreCommit1" || deal.Message == "Adding to Sector" {
-			beingSealed = append(beingSealed, deal)
-		}
-	}
-
-	return beingSealed
 }
 
 func carExists(path string) bool {
