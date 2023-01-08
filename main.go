@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -22,6 +23,8 @@ func main() {
 	var debug bool = false
 	var gql_port = "8080"
 	var boost_port = "1288"
+	var max_concurrent = 0
+	var interval = 0
 
 	app := &cli.App{
 		Name: "Filecoin Offline Dataset Importer",
@@ -56,6 +59,17 @@ func main() {
 				DefaultText: "1288",
 				Destination: &boost_port,
 			},
+			&cli.IntFlag{
+				Name:        "max_concurrent",
+				Usage:       "stop importing if # of deals in AP or PC1 are above this threshold. 0 = unlimited.",
+				Destination: &max_concurrent,
+			},
+			&cli.IntFlag{
+				Name:        "interval",
+				Usage:       "interval, in seconds, to re-run the importer",
+				Required:    true,
+				Destination: &interval,
+			},
 			&cli.BoolFlag{
 				Name:        "debug",
 				Usage:       "set to enable debug logging output",
@@ -64,14 +78,17 @@ func main() {
 		},
 
 		Action: func(cctx *cli.Context) error {
-			log.Info("beginning dataset import...")
+			log.Info("Starting Dataset Importer")
 
 			if debug {
 				log.SetLevel(log.DebugLevel)
 			}
 
-			importer(boost_address, boost_api_key, gql_port, boost_port, base_directory)
-			return nil
+			for {
+				log.Debugf("running import")
+				importer(boost_address, boost_api_key, gql_port, boost_port, base_directory, max_concurrent)
+				time.Sleep(time.Second * time.Duration(interval))
+			}
 		},
 	}
 
@@ -80,18 +97,34 @@ func main() {
 	}
 }
 
-func importer(boost_address string, boost_api_key string, gql_port string, boost_port string, base_directory string) {
+func importer(boost_address string, boost_api_key string, gql_port string, boost_port string, base_directory string, max_concurrent int) {
 	boost, err := NewBoostConnection(boost_address+":"+boost_port, boost_api_key)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	d := getDealsFromBoost(boost_address, gql_port)
-	od := filterDeals(d)
+	inProgress := filterDealsBeingSealed(d)
 
-	log.Debugf("%d deals to check\n", len(od))
+	if max_concurrent != 0 && len(inProgress) >= max_concurrent {
+		log.Debugf("skipping import as there are %d deals in progress (max_concurrent is %d)", len(inProgress), max_concurrent)
+		return
+	}
 
-	for _, deal := range od {
+	toImport := filterDealsToBeImported(d)
+
+	log.Debugf("%d deals awaiting import\n", len(toImport))
+
+	if len(toImport) == 0 {
+		log.Debugf("nothing to do, no deals awaiting import")
+		return
+	}
+
+	i := 0
+	// keep trying until we successfully manage to import a deal
+	// this should usually simply take the first one, import it, and then return
+	for i < len(toImport) {
+		deal := toImport[i]
 		filename := generateCarFileName(base_directory, deal.PieceCid, deal.ClientAddress)
 
 		if filename == "" {
@@ -108,8 +141,9 @@ func importer(boost_address string, boost_api_key string, gql_port string, boost
 			continue
 		}
 
-		log.Debugf("importing uuid %v at %v\n", id, filename)
+		log.Debugf("importing uuid %v from %v\n", id, filename)
 		boost.importCar(context.Background(), filename, id)
+		break
 	}
 }
 
@@ -138,8 +172,8 @@ func getDealsFromBoost(boost_address string, gql_port string) []Deal {
 	return graphqlResponse.Deals.Deals
 }
 
-func filterDeals(d []Deal) []Deal {
-	var result []Deal
+func filterDealsToBeImported(d []Deal) []Deal {
+	var toImport []Deal
 
 	for _, deal := range d {
 		// Only check:
@@ -147,11 +181,26 @@ func filterDeals(d []Deal) []Deal {
 		// - Accepted deals (awaiting import)
 		// - Deals where the inbound path has not been set (has not been imported yet)
 		if deal.IsOffline && deal.Checkpoint == "Accepted" && deal.InboundFilePath == "" {
-			result = append(result, deal)
+			toImport = append(toImport, deal)
 		}
 	}
 
-	return result
+	return toImport
+}
+
+func filterDealsBeingSealed(d []Deal) []Deal {
+	var beingSealed []Deal
+
+	for _, deal := range d {
+		// Only check:
+		// - Deals in PC1 phase
+		// - Deals that are "Adding to Sector" (in AddPiece)
+		if deal.Message == "Sealer: PreCommit1" || deal.Message == "Adding to Sector" {
+			beingSealed = append(beingSealed, deal)
+		}
+	}
+
+	return beingSealed
 }
 
 func carExists(path string) bool {
