@@ -118,10 +118,12 @@ func importer(boost_address string, boost_port string, gql_port string, boost_ap
 		return
 	}
 
-	i := 0
+	// Start with the last (oldest) deal
+	i := len(toImport)
 	// keep trying until we successfully manage to import a deal
 	// this should usually simply take the first one, import it, and then return
-	for i < len(toImport) {
+	for i >= 0 {
+		i = i - 1
 		deal := toImport[i]
 		filename := generateCarFileName(base_directory, deal.PieceCid, deal.ClientAddress)
 
