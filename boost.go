@@ -6,7 +6,7 @@ import (
 
 	bapi "github.com/filecoin-project/boost/api"
 	jsonrpc "github.com/filecoin-project/go-jsonrpc"
-	"github.com/google/uuid"
+	"github.com/ipfs/go-cid"
 	"github.com/machinebox/graphql"
 	log "github.com/sirupsen/logrus"
 )
@@ -44,19 +44,13 @@ func (bc *BoostConnection) Close() {
 	bc.closer()
 }
 
-func (bc *BoostConnection) ImportCar(ctx context.Context, carFile string, dealUuid uuid.UUID) bool {
-	// Deal proposal by deal uuid (v1.2.0 deal)
-	rej, err := bc.bapi.BoostOfflineDealWithData(ctx, dealUuid, carFile)
+func (bc *BoostConnection) ImportCar(ctx context.Context, carFile string, proposalCid cid.Cid) bool {
+	// Deal proposal by proposal CID (v1.1.0 deal)
+	err := bc.bapi.MarketImportDealData(ctx, proposalCid, carFile)
 	if err != nil {
-		log.Errorf("failed to execute offline deal: %w", err)
-		return false
+		log.Errorf("couldnt import v1.1.0 deal, or find boost deal: %w", err)
 	}
-	if rej != nil && rej.Reason != "" {
-		log.Errorf("offline deal %s rejected: %s", dealUuid, rej.Reason)
-		return false
-	}
-
-	log.Debugf("Offline deal import for v1.2.0 deal %s scheduled for execution \n", dealUuid)
+	log.Printf("Offline deal import for v1.1.0 deal %s scheduled for execution\n", proposalCid.String())
 
 	return true
 }
@@ -64,15 +58,14 @@ func (bc *BoostConnection) ImportCar(ctx context.Context, carFile string, dealUu
 func (bc *BoostConnection) GetDeals() BoostDeals {
 	graphqlRequest := graphql.NewRequest(`
 	{
-		deals(query: "", limit: 9999999) {
+		legacyDeals(query: "", limit: 9999999) {
 			deals {
 				ID
+				CreatedAt
 				Message
 				PieceCid
-				IsOffline
+				Status
 				ClientAddress
-				Checkpoint
-				InboundFilePath
 			}
 		}
 	}
@@ -82,7 +75,7 @@ func (bc *BoostConnection) GetDeals() BoostDeals {
 		panic(err)
 	}
 
-	return graphqlResponse.Deals.Deals
+	return graphqlResponse.LegacyDeals.Deals
 }
 
 // Filter only deals that are currently in progress (in AP or PC1)
@@ -93,7 +86,7 @@ func (d BoostDeals) InProgress() []Deal {
 		// Only check:
 		// - Deals in PC1 phase
 		// - Deals that are "Adding to Sector" (in AddPiece)
-		if deal.Message == "Sealer: PreCommit1" || deal.Message == "Adding to Sector" {
+		if deal.Message != "StorageDealWaitingForData" && deal.Message != "StorageDealError" {
 			beingSealed = append(beingSealed, deal)
 		}
 	}
@@ -110,7 +103,7 @@ func (d BoostDeals) AwaitingImport() []Deal {
 		// - Offline deals
 		// - Accepted deals (awaiting import)
 		// - Deals where the inbound path has not been set (has not been imported yet)
-		if deal.IsOffline && deal.Checkpoint == "Accepted" && deal.InboundFilePath == "" {
+		if deal.Status == "StorageDealWaitingForData" && deal.InboundCARPath == "" {
 			toImport = append(toImport, deal)
 		}
 	}

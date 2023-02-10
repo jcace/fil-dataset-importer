@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/ipfs/go-cid"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -13,6 +13,7 @@ import (
 var DATASET_MAP = map[string]string{
 	"f1bg3khvfgh6v4n37oxyoy7rzuh74r7lw77gu7z7a": "skies_and_universes",
 	"f1m54rlpqha44mgfm3oa4nxc3exmq3k5azn7cv7fi": "encode-public",
+	"f1bvlifue4nucdljqbcayi7i3ep535y3rackexiyy": "caribbean",
 }
 
 func main() {
@@ -136,14 +137,14 @@ func importer(boost_address string, boost_port string, gql_port string, boost_ap
 			continue
 		}
 
-		id, err := uuid.Parse(deal.ID)
+		propCid, err := cid.Decode(deal.ID)
 		if err != nil {
-			log.Errorf("could not parse uuid " + deal.ID)
+			log.Errorf("could not parse CID " + deal.ID)
 			continue
 		}
 
-		log.Debugf("importing uuid %v from %v\n", id, filename)
-		boost.ImportCar(context.Background(), filename, id)
+		log.Debugf("importing uuid %v from %v\n", propCid, filename)
+		boost.ImportCar(context.Background(), filename, propCid)
 		break
 	}
 }
