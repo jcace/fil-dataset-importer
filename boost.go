@@ -66,6 +66,7 @@ func (bc *BoostConnection) GetDeals() BoostDeals {
 				PieceCid
 				Status
 				ClientAddress
+				InboundCARPath
 			}
 		}
 	}
@@ -84,9 +85,8 @@ func (d BoostDeals) InProgress() []Deal {
 
 	for _, deal := range d {
 		// Only check:
-		// - Deals in PC1 phase
-		// - Deals that are "Adding to Sector" (in AddPiece)
-		if deal.Status != "StorageDealWaitingForData" && deal.Status != "StorageDealError" {
+		// - Deals that are sealing
+		if deal.Status == "StorageDealSealing" {
 			beingSealed = append(beingSealed, deal)
 		}
 	}
