@@ -166,5 +166,5 @@ func generateCarFileName(base_directory string, pieceCid string, sourceAddr stri
 		return ""
 	}
 
-	return base_directory + "/" + datasetSlug + "/" + pieceCid + ".car"
+	return base_directory + "/" + datasetSlug + "/" + pieceCid
 }
