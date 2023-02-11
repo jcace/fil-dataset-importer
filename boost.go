@@ -86,7 +86,7 @@ func (d BoostDeals) InProgress() []Deal {
 		// Only check:
 		// - Deals in PC1 phase
 		// - Deals that are "Adding to Sector" (in AddPiece)
-		if deal.Message != "StorageDealWaitingForData" && deal.Message != "StorageDealError" {
+		if deal.Status != "StorageDealWaitingForData" && deal.Status != "StorageDealError" {
 			beingSealed = append(beingSealed, deal)
 		}
 	}
