@@ -133,7 +133,7 @@ func importer(boost_address string, boost_port string, gql_port string, boost_ap
 	i := len(toImport)
 	// keep trying until we successfully manage to import a deal
 	// this should usually simply take the first one, import it, and then return
-	for i >= 0 {
+	for i > 0 {
 		i = i - 1
 		deal := toImport[i]
 		filename := generateCarFileName(base_directory, deal.PieceCid, deal.ClientAddress)
@@ -161,7 +161,7 @@ func importer(boost_address string, boost_port string, gql_port string, boost_ap
 func carExists(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
-		log.Errorf("error finding car file %s: %s", path, err)
+		log.Tracef("error finding car file %s: %s", path, err)
 		return false
 	}
 	return true
