@@ -7,13 +7,11 @@ import (
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"github.com/urfave/cli/v2"
 )
 
-var DATASET_MAP = map[string]string{
-	"f1bg3khvfgh6v4n37oxyoy7rzuh74r7lw77gu7z7a": "skies_and_universes",
-	"f1m54rlpqha44mgfm3oa4nxc3exmq3k5azn7cv7fi": "encode-public",
-}
+var DATASET_MAP map[string]string
 
 func main() {
 	var boost_address string
@@ -78,6 +76,16 @@ func main() {
 
 		Action: func(cctx *cli.Context) error {
 			log.Info("Starting Dataset Importer")
+
+			viper.SetConfigName("datasets.json")
+
+			if err := viper.ReadInConfig(); err != nil {
+				if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+					log.Fatalf("missing config file datasets.json. see readme for info.")
+				} else {
+					log.Fatalf("config file could not be read: %s", err)
+				}
+			}
 
 			if debug {
 				log.SetLevel(log.DebugLevel)
@@ -159,7 +167,7 @@ func carExists(path string) bool {
 
 // Mapping from client address -> dataset slug -> find in the folder
 func generateCarFileName(base_directory string, pieceCid string, sourceAddr string) string {
-	datasetSlug := DATASET_MAP[sourceAddr]
+	datasetSlug := viper.GetString(sourceAddr)
 	if datasetSlug == "" {
 		log.Errorf("unrecognized dataset from addr %s\n", sourceAddr)
 		return ""

@@ -34,3 +34,20 @@ GLOBAL OPTIONS:
 The followng command will import a deal every 240 seconds, until there are 80 deals currently in the AP/PC1 state. Then, it will stop untill some deals clear out. 
 
 `fil-dataset-importer --boost 192.168.1.1 --port 1288 --gql 8080 --key eyJ...XXX --dir /home/filecoin/datasets --interval 240 --max_concurrent 80 --debug`
+
+
+## Datasets Config
+You must provide the tool with a file named `datasets.json` , in the same directory that the command is being executed from. This file maintains a mapping between client `wallets` (i.e, who is making deals) with a `dataset slug`. This dataset slug is appended to the `--dir` flag when importing data. 
+
+For example, given a `datasets.json` that looks like this:
+```json
+{
+   "f1234": "test-dataset"
+}
+```
+
+And a `--dir` flag or `/home/filecoin/datasets`, 
+
+Then, when an offline deal comes in from address `f1234`, the importer will search in the directory `/home/filecoin/datasets/test-dataset` for a CAR file `<pieceCID>.car` to import. 
+
+You can find an example of the datasets file in `sample_datasets.json`
