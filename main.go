@@ -77,7 +77,9 @@ func main() {
 		Action: func(cctx *cli.Context) error {
 			log.Info("Starting Dataset Importer")
 
-			viper.SetConfigName("datasets.json")
+			viper.AddConfigPath(".")
+			viper.SetConfigType("json")
+			viper.SetConfigName("datasets")
 
 			if err := viper.ReadInConfig(); err != nil {
 				if _, ok := err.(viper.ConfigFileNotFoundError); ok {
