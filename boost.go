@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	bapi "github.com/filecoin-project/boost/api"
@@ -73,6 +74,7 @@ func (bc *BoostConnection) GetDeals() BoostDeals {
 				ClientAddress
 				Checkpoint
 				InboundFilePath
+				Err
 			}
 		}
 	}
@@ -116,4 +118,31 @@ func (d BoostDeals) AwaitingImport() []Deal {
 	}
 
 	return toImport
+}
+
+// Queries boost for deals that match a given CID - useful to check if there are other failed ones
+func (bc *BoostConnection) GetDealsForContent(cid string) []Deal {
+	graphqlRequest := graphql.NewRequest(fmt.Sprintf(`
+	{
+		deals(query: "%s", limit: 10) {
+			deals {
+				ID
+				Message
+				PieceCid
+				IsOffline
+				ClientAddress
+				Checkpoint
+				InboundFilePath
+				Err
+			}
+		}
+	}
+	`, cid))
+
+	var graphqlResponse Data
+	if err := bc.bgql.Run(context.Background(), graphqlRequest, &graphqlResponse); err != nil {
+		panic(err)
+	}
+
+	return graphqlResponse.Deals.Deals
 }

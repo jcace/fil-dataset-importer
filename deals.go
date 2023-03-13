@@ -33,4 +33,5 @@ type Deal struct {
 	ClientAddress   string `json:"ClientAddress"`
 	Checkpoint      string `json:"Checkpoint"`
 	InboundFilePath string `json:"InboundFilePath"`
+	Err             string `json:"Err"`
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
@@ -136,8 +137,14 @@ func importer(boost_address string, boost_port string, gql_port string, boost_ap
 	for i > 0 {
 		i = i - 1
 		deal := toImport[i]
-		filename := generateCarFileName(base_directory, deal.PieceCid, deal.ClientAddress)
 
+		otherDeals := boost.GetDealsForContent(deal.PieceCid)
+		if hasFailedDeals(otherDeals) {
+			log.Debugf("skipping import of %s as there are failed deals for it", deal.PieceCid)
+			continue
+		}
+
+		filename := generateCarFileName(base_directory, deal.PieceCid, deal.ClientAddress)
 		if filename == "" {
 			continue
 		}
@@ -176,4 +183,26 @@ func generateCarFileName(base_directory string, pieceCid string, sourceAddr stri
 	}
 
 	return base_directory + "/" + datasetSlug + "/" + pieceCid + ".car"
+}
+
+// checks if there are failed deals in a given array of deals
+func hasFailedDeals(ds []Deal) bool {
+	failed := false
+	re, err := regexp.Compile(`.*commp mismatch.*`)
+	if err != nil {
+		log.Error("could not compile regex: " + err.Error())
+		return false
+	}
+
+	for _, d := range ds {
+		isCommpMismatch := re.MatchString(d.Err)
+
+		if isCommpMismatch {
+			failed = true
+			break
+		}
+	}
+
+	return failed
+
 }
